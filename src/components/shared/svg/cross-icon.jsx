@@ -1,5 +1,5 @@
 import React from "react";
-import { ONDC_COLORS } from "../colors";
+import { ONDC_COLORS } from "../Colors";
 
 export default function CrossIcon(props) {
   const {

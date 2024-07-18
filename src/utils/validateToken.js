@@ -1,5 +1,5 @@
 import Cookies from "js-cookie";
-import { deleteAllCookies } from "../utils/cookies";
+import { deleteAllCookies } from "./cookies";
 
 export function isLoggedIn() {
   if (Cookies.get("token")) {

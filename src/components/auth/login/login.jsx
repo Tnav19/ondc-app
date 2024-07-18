@@ -1,48 +1,47 @@
-import React, { useContext, useState } from "react";
-import { Redirect } from "react-router-dom";
-import {
-  getAuth,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
-import styles from "../../../styles/auth/auth.module.scss";
-import { buttonTypes } from "../../shared/button/utils";
-import Button from "../../shared/button/button";
-import AuthActionCard from "../auth-action-card/authActionCard";
-import { Link, useHistory } from "react-router-dom";
-import Input from "../../shared/input/input";
-import PasswordInput from "../../shared/passwordInput/input";
-import ErrorMessage from "../../shared/error-message/errorMessage";
-import { toast_actions, toast_types } from "../../shared/toast/utils/toast";
-import { getErrorMessage } from "../../../api/utils/mapFirebaseError";
-import { AddCookie } from "../../../utils/cookies";
-import { ToastContext } from "../../../context/toastContext";
-import { v4 as uuidv4 } from "uuid";
+import React, { useEffect, useState } from "react";
+import Button from "../../Shared/Button";
+import AuthActionCard from "../AuthActionCard/AuthActionCard";
+import { NavLink, useNavigate } from "react-router-dom";
+import ErrorMessage from "../../Shared/ErrorMessage";
+import TextField from "@mui/material/TextField";
+import { styled } from "@mui/material/styles";
+import { loadCaptchaEnginge, LoadCanvasTemplate, validateCaptcha } from 'react-simple-captcha';
+import { AddCookie, getValueFromCookie } from "../../../utils/cookies";
+import { postCall } from "../../../Api/axios";
+import cogoToast from "cogo-toast";
 
-import Google_Logo from "../../../assets/images/google.png";
-import { isLoggedIn } from "../../../utils/validateToken";
+const CssTextField = styled(TextField)({
+  "& .MuiOutlinedInput-root": {
+    "& fieldset": {
+      borderColor: "black",
+    },
+    "&:hover fieldset": {
+      borderColor: "#1c75bc",
+    },
+    "&.Mui-focused fieldset": {
+      borderColor: "#1c75bc",
+    },
+  },
+});
 
 export default function Login() {
-  const auth = getAuth();
-  const provider = new GoogleAuthProvider();
-  const history = useHistory();
-  const [email, setEmail] = useState();
-  const [password, setPassword] = useState();
-  const [signInUsingGoogleloading, setSignInUsingGoogleLoading] =
-    useState(false);
-  const [
-    signInUsingEmailAndPasswordloading,
-    setSignInUsingEmailAndPasswordLoading,
-  ] = useState(false);
-  const dispatch = useContext(ToastContext);
+  const navigate = useNavigate();
+  const [login, setLogin] = useState({
+    email: "",
+    password: "",
+  });
+  const [signInUsingEmailAndPasswordloading] = useState(false);
   const [inlineError, setInlineError] = useState({
     email_error: "",
     password_error: "",
+    captcha_error: "",
   });
+  const [captchaVal, setCaptchaVal] = useState('');
+  const [enableCaptcha, setEnableCaptcha] = useState(false);
+
   // use this function to check the email
   function checkEmail() {
-    if (!email) {
+    if (!login.email) {
       setInlineError((inlineError) => ({
         ...inlineError,
         email_error: "Email cannot be empty",
@@ -53,16 +52,10 @@ export default function Login() {
   }
 
   function checkPassword() {
-    if (!password) {
+    if (!login.password) {
       setInlineError((inlineError) => ({
         ...inlineError,
         password_error: "Password cannot be empty",
-      }));
-      return false;
-    } else if (password && password.length < 8) {
-      setInlineError((inlineError) => ({
-        ...inlineError,
-        password_error: "Password cannot be less than 8 characters",
       }));
       return false;
     }
@@ -70,161 +63,175 @@ export default function Login() {
     return true;
   }
 
-  function handleLoginWithEmailAndPassword(e) {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const allCheckPassed = [checkEmail(), checkPassword()].every(Boolean);
-    if (!allCheckPassed) {
-      return;
+    if (enableCaptcha && !validateCaptcha(captchaVal)) {
+      setInlineError((inlineError) => ({
+        ...inlineError,
+        captcha_error: "Captcha does not match",
+      }));
+      return
     }
-    setSignInUsingEmailAndPasswordLoading(true);
-    signInWithEmailAndPassword(auth, email, password)
-      .then((result) => {
-        handleRedirect(result.user);
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = getErrorMessage(errorCode);
-        dispatch({
-          type: toast_actions.ADD_TOAST,
-          payload: {
-            id: Math.floor(Math.random() * 100),
-            type: toast_types.error,
-            message: errorMessage,
-          },
-        });
-      })
-      .finally(() => setSignInUsingEmailAndPasswordLoading(false));
+    const url = "/api/v1/auth/login";
+    try {
+      const res = await postCall(url, login);
+      handleRedirect(res.data.access_token, res.data.user);
+    } catch (error) {
+      cogoToast.error(error.response.data.error);
+      setEnableCaptcha(true)
+      loadCaptchaEnginge(6)
+    }
+  };
+
+  function handleRedirect(token, user) {
+    const { _id } = user;
+    AddCookie("token", token);
+    localStorage.setItem("user_id", _id);
+    navigate("/application/inventory");
   }
-  function handleLoginWithGoogle() {
-    setSignInUsingGoogleLoading(true);
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        handleRedirect(result.user);
-      })
-      .catch((error) => {
-        if (error.code !== "auth/popup-closed-by-user") {
-          const errorMessage = error.message;
-          dispatch({
-            type: toast_actions.ADD_TOAST,
-            payload: {
-              id: Math.floor(Math.random() * 100),
-              type: toast_types.error,
-              message: errorMessage,
-            },
-          });
-        }
-      })
-      .finally(() => setSignInUsingGoogleLoading(false));
-  }
-  function handleRedirect(user) {
-    localStorage.setItem("transaction_id", uuidv4());
-    const { displayName, email, photoURL, accessToken, uid } = user;
-    AddCookie("token", accessToken);
-    AddCookie(
-      "user",
-      JSON.stringify({ name: displayName, id: uid, email, photoURL })
-    );
-    history.push("/application");
-  }
+
+  useEffect(() => {
+    if (getValueFromCookie("token")) {
+      navigate("/application/inventory");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (enableCaptcha) loadCaptchaEnginge(6)
+  }, [enableCaptcha])
+
   const loginForm = (
-    <div className={styles.auth_form}>
-      <form onSubmit={handleLoginWithEmailAndPassword}>
-        <Input
-          id="email"
+    <div className="m-auto w-10/12 md:w-3/4">
+      <div className="py-1">
+        <label
+          htmlFor="email"
+          className="text-sm py-2 ml-1 font-medium text-left text-[#606161] inline-block"
+        >
+          Email
+          <span className="text-[#FF0000]"> *</span>
+        </label>
+        <CssTextField
+          id={
+            inlineError.email_error
+              ? "outlined-error"
+              : "demo-helper-text-aligned"
+          }
           name="email"
           type="email"
           placeholder="Enter Email"
-          label_name="Email"
           autoComplete="off"
-          has_error={inlineError.email_error}
+          className="w-full h-full px-2.5 py-3.5 text-[#606161] bg-transparent !border-black"
           onChange={(event) => {
-            setEmail(event.target.value);
+            setLogin({ ...login, email: event.target.value });
             setInlineError((inlineError) => ({
               ...inlineError,
               email_error: "",
             }));
           }}
+          size="small"
           onBlur={checkEmail}
+          error={inlineError.email_error ? true : false}
+          // helperText={inlineError.email_error && inlineError.email_error}
           required
         />
-        {inlineError.email_error && (
-          <ErrorMessage>{inlineError.email_error}</ErrorMessage>
-        )}
-        <PasswordInput
-          id="password"
+      </div>
+      {inlineError.email_error && (
+        <ErrorMessage>{inlineError.email_error}</ErrorMessage>
+      )}
+      <div className="py-1">
+        <label
+          htmlFor="password"
+          className="text-sm py-2 ml-1 font-medium text-left text-[#606161] inline-block"
+        >
+          Password
+          <span className="text-[#FF0000]"> *</span>
+        </label>
+        <CssTextField
+          id={
+            inlineError.password_error
+              ? "outlined-error"
+              : "demo-helper-text-aligned"
+          }
           name="password"
-          // type="password"
+          type="password"
           placeholder="Enter Password"
-          label_name="Password"
           autoComplete="off"
-          has_error={inlineError.password_error}
+          className="w-full h-full px-2.5 py-3.5 text-[#606161] bg-transparent"
           onChange={(event) => {
-            setPassword(event.target.value);
+            setLogin({ ...login, password: event.target.value });
             setInlineError((inlineError) => ({
               ...inlineError,
               password_error: "",
             }));
           }}
+          size="small"
           onBlur={checkPassword}
+          error={inlineError.password_error ? true : false}
+          style={{ borderRadius: "10px" }}
           required
         />
-        {inlineError.password_error && (
-          <ErrorMessage>{inlineError.password_error}</ErrorMessage>
-        )}
-        <div className="py-3 text-center">
-          <Button
-            isloading={signInUsingEmailAndPasswordloading ? 1 : 0}
-            disabled={
-              signInUsingGoogleloading || signInUsingEmailAndPasswordloading
-            }
-            button_type={buttonTypes.primary}
-            button_hover_type={buttonTypes.primary_hover}
-            button_text="Login"
-            type="submit"
-          />
-        </div>
-        <hr style={{ margin: "5px 0", border: "1px solid #ddd" }} />
-        <div className="py-3 text-center">
-          <Button
-            isloading={signInUsingGoogleloading ? 1 : 0}
-            disabled={
-              signInUsingGoogleloading || signInUsingEmailAndPasswordloading
-            }
-            button_type={buttonTypes.primary}
-            button_hover_type={buttonTypes.primary_hover}
-            button_text={
-              <>
-                <img
-                  src={Google_Logo}
-                  alt="logo"
-                  style={{ height: "20px", marginRight: "10px" }}
-                />
-                Login with google
-              </>
-            }
-            onClick={handleLoginWithGoogle}
-          />
-        </div>
-      </form>
+      </div>
+      {inlineError.password_error && (
+        <ErrorMessage>{inlineError.password_error}</ErrorMessage>
+      )}
+      {enableCaptcha && (
+        <>
+          <div className="py-1"><LoadCanvasTemplate /></div>
+          <div className="py-1">
+            <CssTextField
+              required
+              size="small"
+              name="captchaVal"
+              type="text"
+              placeholder="Enter Captcha Value"
+              autoComplete="off"
+              className="w-full h-full px-2.5 py-3.5 text-[#606161] bg-transparent !border-black"
+              onChange={(event) => {
+                setCaptchaVal(event.target.value);
+                setInlineError((inlineError) => ({
+                  ...inlineError,
+                  captcha_error: "",
+                }));
+              }}
+            />
+          </div>
+          {inlineError.captcha_error && (
+            <ErrorMessage>{inlineError.captcha_error}</ErrorMessage>
+          )}
+        </>
+      )}
+      <div className="py-3 pt-6  text-center flex flex-row justify-center">
+        <Button
+          isloading={signInUsingEmailAndPasswordloading ? 1 : 0}
+          disabled={
+            signInUsingEmailAndPasswordloading ||
+            login.email == "" ||
+            login.password == ""
+          }
+          variant="contained"
+          title="Login"
+          className="!w-40 !capitalize !py-2"
+          onClick={(e) => handleLogin(e)}
+        />
+      </div>
     </div>
   );
   const navigation_link = (
     <div className="py-2 text-center">
-      <p className={styles.navigation_link_label}>Don't have an account?</p>
-      <Link to="/sign-up" className={styles.navigation_link}>
-        Sign Up
-      </Link>
+      <NavLink to="/forgot-password" className="">
+        <p className="text-xs text-[#3d629ad2] hover:text-[#0066ffd2]">
+          Forgot password
+        </p>
+      </NavLink>
+      <br />
+      <NavLink to="/sign-up" className="">
+        <p className="text-xs text-[#3d629ad2] hover:text-[#0066ffd2]">
+          Create New Account
+        </p>
+      </NavLink>
     </div>
   );
-
-  if (isLoggedIn()) {
-    return <Redirect to={{ pathname: "/application" }} />;
-  } else {
-    return (
-      <AuthActionCard
-        action_form={loginForm}
-        navigation_link={navigation_link}
-      />
-    );
-  }
+  return (
+    <AuthActionCard action_form={loginForm} navigation_link={navigation_link} />
+  );
 }

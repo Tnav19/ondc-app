@@ -1,29 +1,16 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import "./index.css";
-import App from "./App";
-import reportWebVitals from "./reportWebVitals";
-import "bootstrap/dist/css/bootstrap.css";
-import "bootstrap/dist/js/bootstrap.js";
-import ToastProvider from "./context/toastContext";
-import ErrorBoundary from "./components/shared/error-boundary/errorBoundary";
-import { AddressContextProvider } from "./context/addressContext";
-import { CartContextProvider } from "./context/cartContext";
-import { SearchContextProvider } from "./context/searchContext";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+// import "bootstrap/dist/css/bootstrap.css";
+// import "bootstrap/dist/js/bootstrap.js";
+import reportWebVitals from './reportWebVitals';
 
-ReactDOM.render(
-  <ToastProvider>
-    <ErrorBoundary>
-      <CartContextProvider>
-        {/*    <AddressContextProvider>*/}
-        {/*        <SearchContextProvider>*/}
-        <App />
-        {/*        </SearchContextProvider>*/}
-        {/*    </AddressContextProvider>*/}
-      </CartContextProvider>
-    </ErrorBoundary>
-  </ToastProvider>,
-  document.getElementById("root")
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 );
 
 // If you want to start measuring performance in your app, pass a function

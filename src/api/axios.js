@@ -6,18 +6,15 @@ axios.defaults.baseURL = process.env.REACT_APP_BASE_URL;
 
 function unAuthorizedResponse() {
   deleteAllCookies();
-  localStorage.removeItem("product_list");
-  localStorage.removeItem("cartItems");
   window.location.pathname = "/";
 }
 
-export function getCall(url, params = null) {
+export function getCall(url) {
   const token = Cookies.get("token");
   return new Promise(async (resolve, reject) => {
     try {
       const response = await axios.get(url, {
-        params: params,
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        headers: { ...(token && { "access-token": `Bearer ${token}` }) },
       });
       return resolve(response.data);
     } catch (err) {
@@ -33,7 +30,25 @@ export function postCall(url, params) {
   return new Promise(async (resolve, reject) => {
     try {
       const response = await axios.post(url, params, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        headers: { ...(token && { "access-token": `Bearer ${token}` }) },
+      });
+      return resolve(response.data);
+    } catch (err) {
+      const { status } = err.response;
+      if (url === "/api/v1/auth/login") {
+        return reject(err);
+      }
+      if (status === 401) return unAuthorizedResponse();
+      return reject(err);
+    }
+  });
+}
+export function putCall(url, params) {
+  const token = Cookies.get("token");
+  return new Promise(async (resolve, reject) => {
+    try {
+      const response = await axios.put(url, params, {
+        headers: { ...(token && { "access-token": `Bearer ${token}` }) },
       });
       return resolve(response.data);
     } catch (err) {
@@ -44,12 +59,16 @@ export function postCall(url, params) {
   });
 }
 
-export function putCall(url, params) {
+export function patchCall(url, params) {
   const token = Cookies.get("token");
   return new Promise(async (resolve, reject) => {
     try {
-      const response = await axios.put(url, params, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      const response = await axios.patch(url, params, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+          Origin: "http://localhost:3000",
+          "Content-Type": "application/binary",
+        },
       });
       return resolve(response.data);
     } catch (err) {
@@ -65,7 +84,7 @@ export function deleteCall(url) {
   return new Promise(async (resolve, reject) => {
     try {
       const response = await axios.delete(url, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        headers: { ...(token && { "access-token": `Bearer ${token}` }) },
       });
       return resolve(response.data);
     } catch (err) {

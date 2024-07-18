@@ -6,20 +6,27 @@ All notable changes to this project will be documented in this file.
 ## 2023-08-16
   
 ### Added
+
+- [RAPP-130](https://ondc-issue-logging-cohort1.atlassian.net/browse/RAPP-130)
+Need to display take action by the provider along with the short description.
  
 ### Changed
   
-- [RAPP-87](https://ondc-issue-logging-cohort1.atlassian.net/browse/RAPP-87)
-  Raise an issue module does not have email id field as an optional and Asterisk marks.
+- [RAPP-127](https://ondc-issue-logging-cohort1.atlassian.net/browse/RAPP-127)
+  Need to update some column name in the Complaints module.
 
-- [RAPP-142](https://ondc-issue-logging-cohort1.atlassian.net/browse/RAPP-142)
-When buyer closed the complaint then system should display a toast message as "Complaint closed successfully" instead of "Action successfully taken"
  
 ### Fixed
+
+- [RAPP-101](https://ondc-issue-logging-cohort1.atlassian.net/browse/RAPP-101)
+Pagination issue in complaints module.
+
+- [RAPP-123](https://ondc-issue-logging-cohort1.atlassian.net/browse/RAPP-123)
+If provider provide the resolution to the raised issue, then Resolve button still enable into the action button that is available on complaints page. 
  
 
 ### PR Link
-[Link](https://github.com/ONDC-Official/biap-app-ui-front/pull/78)
+[Link](https://github.com/ONDC-Official/seller-app-frontend/pull/34)
 
 ### PR Hash
-[Hash](https://github.com/ONDC-Official/biap-app-ui-front/commit/d7405aa25f7bf27a4c5295584b87dd0d02c1c9b3)
+[Hash](https://github.com/Abhi-ONDC/seller-app-frontend/commit/308bdf6d910480f2dd55e408cc4cd7acd73cfa60)

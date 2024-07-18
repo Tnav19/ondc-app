@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Roboto", sans-serif;
+  font-size: 18px;
+  font-weight: normal;
+}
+
+code {
+  font-family: 'Inter';
+}
+
+/* width */
+::-webkit-scrollbar {
+  /* width: 2px;
+  height: 2px; */
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 5px #ddd;
+  border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #999;
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+.text-error {
+  color: red !important;
+}
+
+.text-amber {
+  color: #FFBF00 !important;
+}
+
+body {
+  background: #fff !important;
+}
+
+.MuiSnackbar-root {
+  top: 90px !important;
+  right: 25px !important;
+}
+
+.displayEllipsis {
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
